@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinansialKu - Manajemen Keuangan</title>
+    <meta name="description" content="Aplikasi manajemen keuangan pribadi yang elegan dan mudah digunakan.">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2488/2488744.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Boxicons for icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="background-elements">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">
+                <i class='bx bx-wallet'></i>
+                <h1>FinansialKu</h1>
+            </div>
+            <button id="theme-toggle" class="btn-theme" title="Ganti Tema">
+                <i class='bx bx-moon'></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Summary Cards -->
+        <section class="summary-section">
+            <div class="card summary-card balance">
+                <div class="card-icon"><i class='bx bx-credit-card-front'></i></div>
+                <div class="card-info">
+                    <h3>Saldo Total</h3>
+                    <h2 id="total-balance">Rp 0</h2>
+                </div>
+            </div>
+            <div class="card summary-card income">
+                <div class="card-icon"><i class='bx bx-trending-up'></i></div>
+                <div class="card-info">
+                    <h3>Pemasukan</h3>
+                    <h2 id="total-income">Rp 0</h2>
+                </div>
+            </div>
+            <div class="card summary-card expense">
+                <div class="card-icon"><i class='bx bx-trending-down'></i></div>
+                <div class="card-info">
+                    <h3>Pengeluaran</h3>
+                    <h2 id="total-expense">Rp 0</h2>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section class="dashboard-section">
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h3><i class='bx bx-pie-chart-alt-2'></i> Pengeluaran per Kategori</h3>
+                    <select id="period-cat" class="chart-filter dashboard-period">
+                        <option value="monthly">Bulanan</option>
+                        <option value="weekly">Mingguan</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expenseCategoryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h3><i class='bx bx-bar-chart-alt-2'></i> Komparasi Pengeluaran</h3>
+                    <select id="period-comp" class="chart-filter dashboard-period">
+                        <option value="monthly">Bulanan</option>
+                        <option value="weekly">Mingguan</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expenseComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h3><i class='bx bx-list-ol'></i> Top 5 Pengeluaran</h3>
+                    <select id="period-top" class="chart-filter dashboard-period">
+                        <option value="monthly">Bulanan</option>
+                        <option value="weekly">Mingguan</option>
+                    </select>
+                </div>
+                <div class="top-expenses-list">
+                    <table class="top-expenses-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Kategori</th>
+                                <th style="text-align: right;">Nominal (Rp)</th>
+                                <th>Deskripsi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-expenses-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h3><i class='bx bx-line-chart'></i> Tren Pemasukan</h3>
+                    <select id="period-trend" class="chart-filter dashboard-period">
+                        <option value="monthly">Bulanan</option>
+                        <option value="weekly">Mingguan</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="incomeTrendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transaction Table Section -->
+        <section class="tx-table-section card">
+            <!-- Table Header -->
+            <div class="tx-table-title">
+                <h2><i class='bx bx-grid-alt'></i> Tabel Transaksi</h2>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="tx-filters">
+                <div class="tx-search-wrap">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="tx-search" placeholder="Cari transaksi...">
+                </div>
+                <select id="filter-type" class="chart-filter tx-filter-select">
+                    <option value="">Semua Jenis</option>
+                    <option value="income">Masuk</option>
+                    <option value="expense">Keluar</option>
+                </select>
+                <select id="filter-category" class="chart-filter tx-filter-select">
+                    <option value="">Semua Output</option>
+                </select>
+                <select id="filter-method" class="chart-filter tx-filter-select">
+                    <option value="">Semua Sumber Dana</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="tx-table-wrap">
+                <table class="tx-table" id="tx-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="date" style="width: 20%;">Tanggal <i class='bx bx-sort'></i></th>
+                            <th data-sort="type" style="width: 15%;">Jenis <i class='bx bx-sort'></i></th>
+                            <th data-sort="amount" style="width: 20%;">Nominal (Rp) <i class='bx bx-sort'></i></th>
+                            <th style="width: 45%;">Deskripsi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tx-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="empty-state" style="display:none;">
+                    <i class='bx bx-receipt'></i>
+                    <p>Belum ada transaksi.</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="tx-pagination">
+                <div class="tx-per-page">
+                    <span>Tampilkan</span>
+                    <select id="tx-per-page" class="chart-filter">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span>data</span>
+                    <span id="tx-info" class="tx-info-text"></span>
+                </div>
+                <div class="tx-pages" id="tx-pages"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Form -->
+    <div class="modal-overlay" id="transaction-modal">
+        <div class="modal-content card form-card">
+            <div class="modal-header">
+                <h2 id="modal-title">Tambah Transaksi Baru</h2>
+                <button class="btn-close-modal" id="close-modal-btn">&times;</button>
+            </div>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label for="date">Tanggal</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="type">Tipe</label>
+                    <div class="type-selector">
+                        <input type="radio" id="type-income" name="type" value="income" checked>
+                        <label for="type-income" class="btn-radio income-radio">Pemasukan</label>
+
+                        <input type="radio" id="type-expense" name="type" value="expense">
+                        <label for="type-expense" class="btn-radio expense-radio">Pengeluaran</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="output">Output</label>
+                    <input type="text" id="output" placeholder="Kategori / Hasil Keluaran..." list="master-outputs"
+                        required>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="payment-method">Metode Pembayaran</label>
+                    <select id="payment-method" required>
+                        <option value="" disabled selected>Pilih Metode Pembayaran...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fund-source">Sumber Dana</label>
+                    <input type="text" id="fund-source" placeholder="Contoh: Dompet Utama, Rek BCA..."
+                        list="master-outputs" required>
+                </div>
+
+                <div class="form-group">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label style="margin-bottom: 0;">Keterangan / Daftar Item</label>
+                        <button type="button" class="btn-add-item" id="add-desc-item-btn">
+                            <i class='bx bx-plus'></i> Item
+                        </button>
+                    </div>
+                    <div id="description-items-container">
+                        <!-- Dynamic items will be added by JavaScript -->
+                    </div>
+                    <!-- Hidden input to keep compatibility with existing code if needed, 
+                         though we'll likely update app.js to collect from container -->
+                    <textarea id="description" style="display:none;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">Total Nominal (Rp)</label>
+                    <input type="number" id="amount" placeholder="0" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="receipt">Bukti Transaksi (Foto/Gambar) - Opsional</label>
+                    <input type="file" id="receipt" accept="image/*" capture="environment" class="file-input">
+                    <div id="receipt-preview" style="margin-top: 0.75rem; display: none; text-align: center;">
+                        <img src="" alt="Preview"
+                            style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 1px solid var(--card-border);">
+                        <p id="receipt-preview-label"
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Foto terpilih</p>
+                        <button type="button" id="remove-receipt-btn" class="btn-clear"
+                            style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--danger-color); display: flex; align-items: center; gap: 0.25rem; justify-content: center; width: 100%;">
+                            <i class='bx bx-trash'></i> Hapus Bukti
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btn-submit-form">
+                    <i class='bx bx-plus-circle'></i> Simpan Transaksi
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Datalist untuk Master Output -->
+    <datalist id="master-outputs"></datalist>
+
+    <!-- Floating Action Button -->
+    <button class="fab-btn" id="open-modal-btn" title="Tambah Transaksi Baru">
+        <i class='bx bx-plus'></i>
+    </button>
+
+    <script src="app.js"></script>
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered!'))
+                    .catch(err => console.log('Service Worker failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
