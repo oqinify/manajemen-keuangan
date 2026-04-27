@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finansialku-v1';
+const CACHE_NAME = 'finansialku-v24';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
 
 // Install Service Worker
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Force the waiting service worker to become active
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -26,13 +27,24 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  return self.clients.claim(); // Take control of all pages immediately
 });
 
-// Fetching assets from cache
+// Network First Strategy
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // If network request succeeds, update the cache
+        const resClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, resClone);
+        });
+        return response;
+      })
+      .catch(() => {
+        // If network fails (offline), use cache
+        return caches.match(event.request);
+      })
   );
 });

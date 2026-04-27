@@ -1,12 +1,13 @@
 // =========================================================================
 // PENTING: Ganti URL di bawah dengan URL Web App Google Apps Script Anda!
 // =========================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiwp1x07N7wh4tOmtBTEaSqVV4CS_5cEsbzrnD_B-GWIKm0OosSLaStNDdQ9uksRuS2w/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0XluQdEiC5mJtxfoAutyF7xpvux-3hSX8AWvx3SOO4UlxrnQ8nFg4-j_i7B3J66Uww/exec';
 
 // Initial state and DOM elements
 let transactions = [];
 let masterOutputs = [];
 let masterMethods = [];
+let masterSources = [];
 let editingTransactionId = null;
 let isReceiptDeleted = false;
 let charts = {};
@@ -50,6 +51,15 @@ const closeModal = () => {
     paymentMethodEl.value = '';
     fundSourceEl.value = '';
     receiptEl.value = '';
+
+    // Reset Reminder fields
+    const reminderCheckbox = document.getElementById('enable-reminder');
+    const reminderSettings = document.getElementById('reminder-settings');
+    const reminderTimeInput = document.getElementById('reminder-time');
+    if (reminderCheckbox) reminderCheckbox.checked = false;
+    if (reminderSettings) reminderSettings.style.display = 'none';
+    if (reminderTimeInput) reminderTimeInput.value = '';
+
     editingTransactionId = null;
     isReceiptDeleted = false;
     resetDescriptionItems();
@@ -61,39 +71,53 @@ const closeModal = () => {
 const calculateTotal = () => {
     const rows = itemsContainer.querySelectorAll('.desc-item-row');
     const count = rows.length;
-    
+
+    rows.forEach(row => {
+        const qtyInput = row.querySelector('.desc-item-qty');
+        const amtInput = row.querySelector('.desc-item-amount');
+        const removeBtn = row.querySelector('.btn-remove-item');
+        const subtotalEl = row.querySelector('.desc-item-subtotal');
+
+        if (qtyInput) { qtyInput.style.display = ''; qtyInput.required = true; }
+        if (amtInput) { amtInput.style.display = ''; amtInput.required = true; }
+        if (removeBtn) { removeBtn.style.display = count > 1 ? '' : 'none'; }
+
+        // Calculate subtotal for each row
+        const q = parseFloat(qtyInput.value) || 0;
+        const p = parseFloat(amtInput.value) || 0;
+        const sub = q * p;
+
+        if (subtotalEl) {
+            // Show subtotal if Qty > 1 and price > 0
+            if (q > 1 && p > 0) {
+                subtotalEl.innerText = 'Total: ' + formatCurrency(sub);
+                subtotalEl.style.display = 'block';
+            } else {
+                subtotalEl.style.display = 'none';
+            }
+        }
+    });
+
     if (count === 1) {
-        // Mode 1: Single item
-        const firstRow = rows[0];
-        const firstAmountInput = firstRow.querySelector('.desc-item-amount');
-        const firstRemoveBtn = firstRow.querySelector('.btn-remove-item');
-        
-        firstAmountInput.style.display = 'none';
-        firstAmountInput.required = false;
-        if (firstRemoveBtn) firstRemoveBtn.style.display = 'none'; // Hide "reset" button
-        
         amountEl.disabled = false;
         amountEl.readOnly = false;
         amountEl.removeEventListener('input', syncSingleItemAmount);
         amountEl.addEventListener('input', syncSingleItemAmount);
+
+        const price = parseFloat(rows[0].querySelector('.desc-item-amount').value) || 0;
+        const qty = parseFloat(rows[0].querySelector('.desc-item-qty').value) || 0;
+        if (price > 0) amountEl.value = price * qty;
     } else {
-        // Mode 2: Multiple items
         amountEl.disabled = true;
         amountEl.readOnly = true;
         amountEl.removeEventListener('input', syncSingleItemAmount);
-        
+
         let total = 0;
         rows.forEach(row => {
-            const amtInput = row.querySelector('.desc-item-amount');
-            const removeBtn = row.querySelector('.btn-remove-item');
-            
-            amtInput.style.display = '';
-            amtInput.required = true;
-            if (removeBtn) removeBtn.style.display = ''; // Show "reset" button
-            
-            total += parseFloat(amtInput.value) || 0;
+            const qty = parseFloat(row.querySelector('.desc-item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.desc-item-amount').value) || 0;
+            total += (qty * price);
         });
-        
         amountEl.value = total > 0 ? total : '';
     }
 };
@@ -102,34 +126,43 @@ const syncSingleItemAmount = () => {
     const rows = itemsContainer.querySelectorAll('.desc-item-row');
     if (rows.length === 1) {
         rows[0].querySelector('.desc-item-amount').value = amountEl.value;
+        rows[0].querySelector('.desc-item-qty').value = 1;
     }
 };
 
-const createItemRow = (name = '', amount = '') => {
+const createItemRow = (name = '', qty = 1, amount = '') => {
     const row = document.createElement('div');
     row.className = 'desc-item-row';
     row.innerHTML = `
-        <input type="text" class="desc-item-input" placeholder="Nama item..." value="${name}" required>
-        <input type="number" class="desc-item-amount" placeholder="Harga..." value="${amount}">
-        <button type="button" class="btn-remove-item" title="Hapus Item">
-            <i class='bx bx-x'></i>
-        </button>
+        <div class="desc-item-name-row">
+            <input type="text" class="desc-item-input" placeholder="Nama item..." value="${name}" required>
+        </div>
+        <div class="desc-item-inputs-row">
+            <input type="number" class="desc-item-qty" placeholder="Qty" value="${qty}" min="1" step="any" required>
+            <input type="number" class="desc-item-amount" placeholder="Harga Satuan..." value="${amount}" required>
+            <button type="button" class="btn-remove-item" title="Hapus Item">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+        <div class="desc-item-subtotal"></div>
     `;
-    
+
     // Add listeners for total calculation
+    row.querySelector('.desc-item-qty').addEventListener('input', calculateTotal);
     row.querySelector('.desc-item-amount').addEventListener('input', calculateTotal);
-    
+
     row.querySelector('.btn-remove-item').addEventListener('click', () => {
         if (itemsContainer.querySelectorAll('.desc-item-row').length > 1) {
             row.remove();
             calculateTotal();
         } else {
             row.querySelector('.desc-item-input').value = '';
+            row.querySelector('.desc-item-qty').value = 1;
             row.querySelector('.desc-item-amount').value = '';
             calculateTotal();
         }
     });
-    
+
     return row;
 };
 
@@ -156,9 +189,10 @@ const getJoinedDescription = () => {
     const rows = itemsContainer.querySelectorAll('.desc-item-row');
     const items = Array.from(rows).map(row => {
         const name = row.querySelector('.desc-item-input').value.trim();
+        const qty = row.querySelector('.desc-item-qty').value.trim() || 1;
         const amt = row.querySelector('.desc-item-amount').value.trim();
         if (name === '') return '';
-        return amt !== '' ? `${name} [${amt}]` : name;
+        return amt !== '' ? `${name} [${qty} x ${amt}]` : name;
     }).filter(v => v !== '');
     return items.join(' | ');
 };
@@ -170,14 +204,21 @@ const setSplitDescription = (text) => {
         calculateTotal();
         return;
     }
-    
+
     const items = text.split(' | ');
     items.forEach(item => {
-        const match = item.match(/(.*) \[(.*)\]/);
+        // Try to parse "Name [Qty x Amount]"
+        const match = item.match(/(.*) \[(.*) x (.*)\]/);
         if (match) {
-            itemsContainer.appendChild(createItemRow(match[1], match[2]));
+            itemsContainer.appendChild(createItemRow(match[1], match[2], match[3]));
         } else {
-            itemsContainer.appendChild(createItemRow(item));
+            // Fallback for old format "Name [Amount]"
+            const oldMatch = item.match(/(.*) \[(.*)\]/);
+            if (oldMatch) {
+                itemsContainer.appendChild(createItemRow(oldMatch[1], 1, oldMatch[2]));
+            } else {
+                itemsContainer.appendChild(createItemRow(item));
+            }
         }
     });
     calculateTotal();
@@ -245,11 +286,64 @@ const setTodayDate = () => {
     dateEl.value = today;
 };
 
+// Toast Notification System
+const showToast = (message, type = 'info') => {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    let icon = 'bx-info-circle';
+    if (type === 'success') icon = 'bx-check-circle';
+    if (type === 'error') icon = 'bx-error-circle';
+
+    toast.innerHTML = `
+        <i class='bx ${icon}'></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+// Notification Permission Request
+const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+
+    if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            showToast('Notifikasi diaktifkan!', 'success');
+            // Send welcome notification
+            new Notification('FinansialKu', {
+                body: 'Notifikasi berhasil diaktifkan. Kami akan mengingatkan Anda untuk mencatat transaksi.',
+                icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488744.png'
+            });
+        }
+    }
+};
+
 // Initialize app
 const init = async () => {
     setTodayDate();
     resetDescriptionItems();
-    await fetchTransactions();
+
+    try {
+        await fetchTransactions();
+    } finally {
+        // Hide splash screen after small delay for smooth transition
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            if (splash) splash.classList.add('hidden');
+
+            // Request notification permission after splash is gone
+            requestNotificationPermission();
+        }, 800);
+    }
 };
 
 const showTableMessage = (html, color = '') => {
@@ -294,8 +388,10 @@ const fetchTransactions = async () => {
             transactions = data.transactions || [];
             masterOutputs = data.masterOutputs || [];
             masterMethods = data.masterMethods || [];
+            masterSources = data.masterSources || [];
             updateMasterDatalist();
             updateMasterMethods();
+            updateMasterSources();
         }
 
         updateUI();
@@ -367,18 +463,28 @@ const updateMasterMethods = () => {
     }
 };
 
-// Handle dynamic list attribution based on transaction type
+// Update Datalist for Master Sources
+const updateMasterSources = () => {
+    const datalist = document.getElementById('master-sources');
+    if (!datalist) return;
+
+    datalist.innerHTML = '';
+    masterSources.forEach(source => {
+        const option = document.createElement('option');
+        option.value = source;
+        datalist.appendChild(option);
+    });
+};
+
+// Handle dynamic label changes based on transaction type
 const typeRadios = document.getElementsByName('type');
+const outputLabel = document.querySelector('label[for="output"]');
+
 typeRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
         const type = e.target.value;
-        const fundSourceInput = document.getElementById('fund-source');
-        if (type === 'expense') {
-            // "Gunakan kolom output sebagai sumber dana jika tipe transaksi adalah pengeluaran"
-            // Ini membuat dropdown Sumber Dana menggunakan Master Output saat pengeluaran
-            fundSourceInput.setAttribute('list', 'master-outputs');
-        } else {
-            fundSourceInput.removeAttribute('list');
+        if (outputLabel) {
+            outputLabel.innerText = type === 'income' ? 'Kategori Pemasukan' : 'Kategori Pengeluaran';
         }
     });
 });
@@ -427,6 +533,18 @@ const getPeriodData = (periodId) => {
             const diffDays = (startOfToday - d) / msPerDay;
             return diffDays > 6 && diffDays <= 13;
         });
+    } else if (period === 'yearly') {
+        labelCur = 'Tahun Ini';
+        labelPrev = 'Tahun Lalu';
+        const currentYear = now.getFullYear();
+
+        currentTrans = transactions.filter(t => new Date(t.date).getFullYear() === currentYear);
+        prevTrans = transactions.filter(t => new Date(t.date).getFullYear() === currentYear - 1);
+    } else if (period === 'all') {
+        labelCur = 'Semua Data';
+        labelPrev = '-';
+        currentTrans = transactions;
+        prevTrans = [];
     }
 
     return { currentTrans, prevTrans, labelCur, labelPrev, period, now };
@@ -888,7 +1006,9 @@ const addTransaction = async (e) => {
         amount,
         paymentMethod,
         fundSource,
-        description
+        fundSource,
+        description,
+        reminder: document.getElementById('enable-reminder').checked ? document.getElementById('reminder-time').value : null
     };
 
     // Prepare File
@@ -927,23 +1047,13 @@ const addTransaction = async (e) => {
             }
 
             if (result.status === 'success') {
+                showToast(editingTransactionId ? 'Transaksi diperbarui!' : 'Transaksi ditambahkan!', 'success');
                 const hadFileUpload = !!fileBase64;
 
                 if (editingTransactionId) {
-                    // For edit with file upload: always refetch from server to get accurate receiptUrl
                     closeModal();
-                    if (hadFileUpload || isReceiptDeleted) {
-                        // Refetch to get accurate receipt URL from server
-                        await fetchTransactions();
-                    } else {
-                        // No file change: update locally is sufficient
-                        const index = transactions.findIndex(t => t.id === editingTransactionId);
-                        if (index !== -1) {
-                            newTransaction.receiptUrl = transactions[index].receiptUrl;
-                            transactions[index] = { ...newTransaction };
-                        }
-                        updateUI();
-                    }
+                    // Always refetch to be safe and ensure everything is in sync
+                    await fetchTransactions();
                 } else {
                     // New transaction: add optimistically, then refresh in background for receiptUrl
                     if (result.fileUrl) {
@@ -1037,8 +1147,27 @@ window.editTransaction = (id) => {
     // Handle multiple items for description
     setSplitDescription(transaction.description);
 
+    // Handle Reminder for editing
+    const reminderCheckbox = document.getElementById('enable-reminder');
+    const reminderSettings = document.getElementById('reminder-settings');
+    const reminderTimeInput = document.getElementById('reminder-time');
+
+    if (transaction.reminder && transaction.reminder !== "") {
+        if (reminderCheckbox) reminderCheckbox.checked = true;
+        if (reminderSettings) reminderSettings.style.display = 'block';
+        if (reminderTimeInput) {
+            // Convert any date format to datetime-local compatible string
+            const rDate = new Date(transaction.reminder);
+            if (!isNaN(rDate)) {
+                const tzOffset = rDate.getTimezoneOffset() * 60000;
+                const localISODate = new Date(rDate.getTime() - tzOffset).toISOString().slice(0, 16);
+                reminderTimeInput.value = localISODate;
+            }
+        }
+    }
+
     modalTitleEl.innerText = 'Edit Transaksi';
-    
+
     // Receipt preview for editing
     if (transaction.receiptUrl && transaction.receiptUrl.startsWith('http')) {
         if (previewContainer) {
@@ -1076,6 +1205,7 @@ window.removeTransaction = async (id, btnElement) => {
 
             transactions = transactions.filter(transaction => transaction.id.toString() !== id.toString());
             updateUI();
+            showToast('Transaksi berhasil dihapus', 'success');
 
             const viewModal = document.getElementById('view-modal-overlay');
             if (viewModal) viewModal.classList.remove('active');
@@ -1123,13 +1253,121 @@ const toggleTheme = () => {
         localStorage.setItem('theme', 'dark');
         themeToggleBtn.innerHTML = "<i class='bx bx-moon'></i>";
     }
+    showToast(`Mode ${currentTheme === 'dark' ? 'Terang' : 'Gelap'} aktif`, 'info');
 };
+
+const notificationBtn = document.getElementById('notification-btn');
 
 // Event Listeners
 formEl.addEventListener('submit', addTransaction);
 openModalBtn.addEventListener('click', openModal);
 closeModalBtn.addEventListener('click', requestCloseModal);
 themeToggleBtn.addEventListener('click', toggleTheme);
+
+// Reminder Toggle Listener
+document.getElementById('enable-reminder')?.addEventListener('change', (e) => {
+    document.getElementById('reminder-settings').style.display = e.target.checked ? 'block' : 'none';
+});
+
+// Reminder Presets and Info Logic
+const reminderTimeInput = document.getElementById('reminder-time');
+const reminderInfo = document.getElementById('reminder-info');
+
+const updateReminderInfo = () => {
+    if (!reminderTimeInput.value) {
+        reminderInfo.style.display = 'none';
+        return;
+    }
+    
+    const rTime = new Date(reminderTimeInput.value);
+    const now = new Date();
+    const diffMs = rTime - now;
+    
+    if (diffMs <= 0) {
+        reminderInfo.innerText = "Waktu sudah terlewat!";
+        reminderInfo.style.color = "var(--expense-color)";
+    } else {
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        let text = "Diingatkan pada: " + formatDate(rTime) + " jam " + rTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        if (diffDays > 0) text += ` (Dalam ${diffDays} hari)`;
+        else if (diffHours > 0) text += ` (Dalam ${diffHours} jam)`;
+        else text += ` (Sebentar lagi)`;
+        
+        reminderInfo.innerText = text;
+        reminderInfo.style.color = "var(--accent-primary)";
+    }
+    reminderInfo.style.display = 'block';
+};
+
+reminderTimeInput?.addEventListener('input', updateReminderInfo);
+
+document.querySelectorAll('.btn-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.add;
+        let date = new Date();
+        
+        if (type === '1h') date.setHours(date.getHours() + 1);
+        else if (type === '3h') date.setHours(date.getHours() + 3);
+        else if (type === 'tomorrow') {
+            date.setDate(date.getDate() + 1);
+            date.setHours(9, 0, 0, 0); // Tomorrow at 9 AM
+        }
+        else if (type === '1w') date.setDate(date.getDate() + 7);
+        
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+        reminderTimeInput.value = localISODate;
+        updateReminderInfo();
+    });
+});
+
+// Reminder Check System
+const checkReminders = () => {
+    const now = new Date().getTime();
+    const lastChecked = localStorage.getItem('last_reminder_check') || 0;
+
+    // Only check if it's been more than 1 minute since last check
+    if (now - lastChecked < 60000) return;
+
+    transactions.forEach(t => {
+        if (t.reminder && t.reminder !== "") {
+            const rTime = new Date(t.reminder).getTime();
+            // If reminder time is between last check and now
+            if (rTime > lastChecked && rTime <= now) {
+                new Notification('Pengingat FinansialKu', {
+                    body: `Waktunya: ${t.description} (${formatCurrency(t.amount)})`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488744.png'
+                });
+                showToast(`Pengingat: ${t.description}`, 'info');
+            }
+        }
+    });
+
+    localStorage.setItem('last_reminder_check', now);
+};
+if (notificationBtn) {
+    notificationBtn.addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+            showToast('Browser Anda tidak mendukung notifikasi', 'error');
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            showToast('Notifikasi Aktif!', 'success');
+            new Notification('FinansialKu', {
+                body: 'Tes Notifikasi: Berhasil diaktifkan!',
+                icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488744.png'
+            });
+        } else if (permission === 'denied') {
+            showToast('Izin diblokir. Klik ikon gembok di browser untuk mengizinkan.', 'error');
+        } else {
+            showToast('Izin notifikasi ditolak', 'error');
+        }
+    });
+}
 modalEl.addEventListener('click', (e) => {
     if (e.target === modalEl) { requestCloseModal(); }
 });
@@ -1168,4 +1406,9 @@ removeReceiptBtn.addEventListener('click', function () {
 // Run init
 initTheme();
 initTableEvents();
-init();
+init().then(() => {
+    // Check reminders after data is loaded
+    setTimeout(checkReminders, 2000);
+    // Periodically check every minute
+    setInterval(checkReminders, 60000);
+});

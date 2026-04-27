@@ -13,7 +13,7 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2488/2488744.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,6 +24,17 @@
 </head>
 
 <body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">
+                <i class='bx bx-wallet-alt'></i>
+            </div>
+            <h1>FinansialKu</h1>
+            <div class="splash-loader"></div>
+        </div>
+    </div>
+
     <div class="background-elements">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
@@ -35,9 +46,14 @@
                 <i class='bx bx-wallet'></i>
                 <h1>FinansialKu</h1>
             </div>
-            <button id="theme-toggle" class="btn-theme" title="Ganti Tema">
-                <i class='bx bx-moon'></i>
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="notification-btn" class="btn-theme" title="Aktifkan Notifikasi">
+                    <i class='bx bx-bell'></i>
+                </button>
+                <button id="theme-toggle" class="btn-theme" title="Ganti Tema">
+                    <i class='bx bx-moon'></i>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -72,9 +88,11 @@
             <div class="card chart-card">
                 <div class="chart-header">
                     <h3><i class='bx bx-pie-chart-alt-2'></i> Pengeluaran per Kategori</h3>
-                    <select id="period-cat" class="chart-filter dashboard-period">
-                        <option value="monthly">Bulanan</option>
-                        <option value="weekly">Mingguan</option>
+                    <select class="chart-filter" id="period-cat">
+                        <option value="weekly">Minggu Ini</option>
+                        <option value="monthly" selected>Bulan Ini</option>
+                        <option value="yearly">Tahun Ini</option>
+                        <option value="all">Semua</option>
                     </select>
                 </div>
                 <div class="chart-container">
@@ -85,9 +103,11 @@
             <div class="card chart-card">
                 <div class="chart-header">
                     <h3><i class='bx bx-bar-chart-alt-2'></i> Komparasi Pengeluaran</h3>
-                    <select id="period-comp" class="chart-filter dashboard-period">
-                        <option value="monthly">Bulanan</option>
-                        <option value="weekly">Mingguan</option>
+                    <select class="chart-filter" id="period-comp">
+                        <option value="weekly">Minggu Ini</option>
+                        <option value="monthly" selected>Bulan Ini</option>
+                        <option value="yearly">Tahun Ini</option>
+                        <option value="all">Semua</option>
                     </select>
                 </div>
                 <div class="chart-container">
@@ -98,9 +118,11 @@
             <div class="card chart-card">
                 <div class="chart-header">
                     <h3><i class='bx bx-list-ol'></i> Top 5 Pengeluaran</h3>
-                    <select id="period-top" class="chart-filter dashboard-period">
-                        <option value="monthly">Bulanan</option>
-                        <option value="weekly">Mingguan</option>
+                    <select class="chart-filter" id="period-top">
+                        <option value="weekly">Minggu Ini</option>
+                        <option value="monthly" selected>Bulan Ini</option>
+                        <option value="yearly">Tahun Ini</option>
+                        <option value="all">Semua</option>
                     </select>
                 </div>
                 <div class="top-expenses-list">
@@ -123,9 +145,11 @@
             <div class="card chart-card">
                 <div class="chart-header">
                     <h3><i class='bx bx-line-chart'></i> Tren Pemasukan</h3>
-                    <select id="period-trend" class="chart-filter dashboard-period">
-                        <option value="monthly">Bulanan</option>
-                        <option value="weekly">Mingguan</option>
+                    <select class="chart-filter" id="period-trend">
+                        <option value="weekly">Minggu Ini</option>
+                        <option value="monthly" selected>Bulan Ini</option>
+                        <option value="yearly">Tahun Ini</option>
+                        <option value="all">Semua</option>
                     </select>
                 </div>
                 <div class="chart-container">
@@ -238,8 +262,8 @@
 
                 <div class="form-group">
                     <label for="fund-source">Sumber Dana</label>
-                    <input type="text" id="fund-source" placeholder="Contoh: Dompet Utama, Rek BCA..."
-                        list="master-outputs" required>
+                    <input type="text" id="fund-source" list="master-sources" placeholder="Pilih atau ketik sumber dana..." required>
+                    <datalist id="master-sources"></datalist>
                 </div>
 
                 <div class="form-group">
@@ -278,6 +302,30 @@
                     </div>
                 </div>
 
+                <!-- Reminder Option -->
+                <div class="form-group" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--card-border);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" id="enable-reminder" style="width: 20px; height: 20px; cursor: pointer;">
+                        <label for="enable-reminder" style="margin-bottom: 0; cursor: pointer; font-weight: 500;">Pasang Pengingat?</label>
+                    </div>
+                </div>
+                
+                <div id="reminder-settings" style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
+                    <div class="form-group">
+                        <label for="reminder-time">Kapan harus diingatkan?</label>
+                        <input type="datetime-local" id="reminder-time" style="width: 100%; margin-bottom: 0.75rem;">
+                        
+                        <div class="reminder-presets" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <button type="button" class="btn-preset" data-add="1h">+1 Jam</button>
+                            <button type="button" class="btn-preset" data-add="3h">+3 Jam</button>
+                            <button type="button" class="btn-preset" data-add="tomorrow">Besok Pagi</button>
+                            <button type="button" class="btn-preset" data-add="1w">Minggu Depan</button>
+                        </div>
+                        
+                        <p id="reminder-info" style="font-size: 0.75rem; color: var(--accent-primary); margin-top: 0.5rem; display: none;"></p>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-submit" id="btn-submit-form">
                     <i class='bx bx-plus-circle'></i> Simpan Transaksi
                 </button>
@@ -293,7 +341,10 @@
         <i class='bx bx-plus'></i>
     </button>
 
-    <script src="app.js"></script>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <script src="app.js?v=24"></script>
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
