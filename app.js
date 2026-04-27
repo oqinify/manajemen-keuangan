@@ -1379,10 +1379,7 @@ if (notificationBtn) {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             showToast('Notifikasi Aktif!', 'success');
-            new Notification('FinansialKu', {
-                body: 'Tes Notifikasi: Berhasil diaktifkan!',
-                icon: 'https://cdn-icons-png.flaticon.com/512/2488/2488744.png'
-            });
+            openReminderModal();
         } else if (permission === 'denied') {
             showToast('Izin diblokir. Klik ikon gembok di browser untuk mengizinkan.', 'error');
         } else {
@@ -1390,6 +1387,71 @@ if (notificationBtn) {
         }
     });
 }
+
+// Reminder List Modal Logic
+const reminderListModal = document.getElementById('reminder-list-modal');
+const closeReminderModalBtn = document.getElementById('close-reminder-modal');
+const reminderListContainer = document.getElementById('reminder-list-container');
+
+const openReminderModal = () => {
+    renderReminderList();
+    reminderListModal.classList.add('active');
+};
+
+const closeReminderModal = () => {
+    reminderListModal.classList.remove('active');
+};
+
+if (closeReminderModalBtn) closeReminderModalBtn.addEventListener('click', closeReminderModal);
+reminderListModal?.addEventListener('click', (e) => {
+    if (e.target === reminderListModal) closeReminderModal();
+});
+
+const renderReminderList = () => {
+    if (!reminderListContainer) return;
+    
+    // Ambil transaksi yang memiliki reminder
+    const reminders = transactions
+        .filter(t => t.reminder && t.reminder !== "")
+        .sort((a, b) => new Date(a.reminder) - new Date(b.reminder));
+    
+    if (reminders.length === 0) {
+        reminderListContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <i class='bx bx-bell-off' style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <p>Tidak ada pengingat aktif.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const now = new Date();
+    
+    reminderListContainer.innerHTML = reminders.map(t => {
+        const rTime = new Date(t.reminder);
+        const isPassed = rTime < now;
+        const statusText = isPassed ? "Sudah Terlewat" : "Akan Datang";
+        const statusColor = isPassed ? "var(--expense-color)" : "var(--accent-primary)";
+        
+        return `
+            <div class="card" style="margin-bottom: 0.75rem; padding: 1rem; border-left: 4px solid ${statusColor}; background: var(--item-bg);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">${t.description || 'Tanpa Keterangan'}</div>
+                    <span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: ${isPassed ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'}; color: ${statusColor}; font-weight: 600; text-transform: uppercase;">
+                        ${statusText}
+                    </span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class='bx bx-calendar-event'></i> ${formatDate(t.reminder)} jam ${rTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <i class='bx bx-money'></i> ${formatCurrency(t.amount)}
+                </div>
+                <button class="btn-clear" onclick="closeReminderModal(); viewTransaction('${t.id}')" style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--accent-primary); text-decoration: underline; padding: 0;">Lihat Transaksi</button>
+            </div>
+        `;
+    }).join('');
+};
 modalEl.addEventListener('click', (e) => {
     if (e.target === modalEl) { requestCloseModal(); }
 });
