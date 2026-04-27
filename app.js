@@ -798,13 +798,12 @@ const renderTransactions = () => {
                 <td>${formatDate(t.date)}</td>
                 <td><span class="tx-badge ${t.type}">${typeIcon} ${typeLabel}</span></td>
                 <td><span class="${amtClass}">${sign}${formatCurrency(t.amount)}</span></td>
-                <td style="white-space: normal; line-height: 1.4;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                        <span style="font-weight: 500; color: var(--text-main);">${t.description || '-'}</span>
-                        ${t.reminder ? `<i class='bx bxs-bell' style='color: var(--accent-primary); font-size: 0.9rem;' title='Ada Pengingat'></i>` : ''}
-                    </div>
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">
-                        <i class='bx bx-purchase-tag'></i> ${t.output || '-'} &bull; <i class='bx bx-transfer-alt'></i> ${t.fundSource || '-'}
+                <td style="white-space: normal; line-height: 1.4; width: 100%;">
+                    <div style="font-weight: 500; color: var(--text-main); margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 1px; min-width: 100%;">${t.description || '-'}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                        <i class='bx bx-purchase-tag'></i> ${t.output || '-'} &bull; 
+                        <i class='bx bx-transfer-alt'></i> ${t.fundSource || '-'}
+                        ${t.reminder ? `<i class='bx bx-bell' style='color: var(--accent-primary); font-size: 0.8rem; margin-left: 2px;' title='Ada Pengingat'></i>` : ''}
                     </div>
                 </td>
             `;
@@ -903,14 +902,21 @@ window.viewTransaction = (id) => {
         <div class="view-detail-row"><span class="view-detail-label">Nominal</span><span class="view-detail-value" style="color:${amtColor}">${sign}${formatCurrency(t.amount)}</span></div>
         <div class="view-detail-row"><span class="view-detail-label">Metode</span><span class="view-detail-value">${t.paymentMethod || '-'}</span></div>
         <div class="view-detail-row"><span class="view-detail-label">Sumber Dana</span><span class="view-detail-value">${t.fundSource || '-'}</span></div>
-        ${t.reminder ? `
-        <div class="view-detail-row" style="background: rgba(59, 130, 246, 0.05); padding: 0.5rem; border-radius: 8px;">
-            <span class="view-detail-label" style="color: var(--accent-primary)"><i class='bx bxs-bell'></i> Pengingat</span>
-            <span class="view-detail-value" style="color: var(--accent-primary); font-weight: 600;">${formatDate(t.reminder)} ${new Date(t.reminder).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>` : ''}
-        <div class="view-detail-row" style="flex-direction:column; align-items:flex-start;">
-            <span class="view-detail-label">Keterangan</span>
-            <span class="view-detail-value" style="margin-top:0.25rem;">${t.description || '-'}</span>
+        <div class="view-detail-row" style="flex-direction:column; align-items:flex-start; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem;">
+            <span class="view-detail-label" style="margin-bottom: 0.5rem;">Daftar Item / Keterangan</span>
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 0.25rem;">
+                ${(t.description || '-').split(' | ').map(item => {
+            const match = item.match(/(.*) \[(.*) x (.*)\]/);
+            if (match) {
+                return `
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; background: var(--item-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">
+                            <span style="font-weight: 600; color: var(--text-main);">${match[1]}</span>
+                            <span style="color: var(--text-muted);">${match[2]} x ${formatCurrency(match[3])}</span>
+                        </div>`;
+            }
+            return `<div style="font-size: 0.85rem; background: var(--item-bg); padding: 0.4rem 0.6rem; border-radius: 6px; color: var(--text-main);">${item}</div>`;
+        }).join('')}
+            </div>
         </div>
         <div class="view-detail-row">
             <span class="view-detail-label">Bukti</span>
@@ -923,6 +929,11 @@ window.viewTransaction = (id) => {
         }
             </span>
         </div>
+        ${t.reminder ? `
+        <div class="view-detail-row" style="background: rgba(59, 130, 246, 0.05); padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem;">
+            <span class="view-detail-label" style="color: var(--accent-primary)"><i class='bx bx-bell'></i> Pengingat</span>
+            <span class="view-detail-value" style="color: var(--accent-primary); font-weight: 600;">${formatDate(t.reminder)} ${new Date(t.reminder).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>` : ''}
         
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
             <button class="btn-primary" style="flex: 1; background: var(--card-border); color: var(--text-main);" onclick="closeViewAndEdit('${t.id}')">
