@@ -1378,7 +1378,6 @@ if (notificationBtn) {
 
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            showToast('Notifikasi Aktif!', 'success');
             openReminderModal();
         } else if (permission === 'denied') {
             showToast('Izin diblokir. Klik ikon gembok di browser untuk mengizinkan.', 'error');
