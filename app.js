@@ -799,7 +799,10 @@ const renderTransactions = () => {
                 <td><span class="tx-badge ${t.type}">${typeIcon} ${typeLabel}</span></td>
                 <td><span class="${amtClass}">${sign}${formatCurrency(t.amount)}</span></td>
                 <td style="white-space: normal; line-height: 1.4;">
-                    <div style="font-weight: 500; color: var(--text-main); margin-bottom: 0.25rem;">${t.description || '-'}</div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <span style="font-weight: 500; color: var(--text-main);">${t.description || '-'}</span>
+                        ${t.reminder ? `<i class='bx bxs-bell' style='color: var(--accent-primary); font-size: 0.9rem;' title='Ada Pengingat'></i>` : ''}
+                    </div>
                     <div style="font-size: 0.82rem; color: var(--text-muted);">
                         <i class='bx bx-purchase-tag'></i> ${t.output || '-'} &bull; <i class='bx bx-transfer-alt'></i> ${t.fundSource || '-'}
                     </div>
@@ -900,7 +903,15 @@ window.viewTransaction = (id) => {
         <div class="view-detail-row"><span class="view-detail-label">Nominal</span><span class="view-detail-value" style="color:${amtColor}">${sign}${formatCurrency(t.amount)}</span></div>
         <div class="view-detail-row"><span class="view-detail-label">Metode</span><span class="view-detail-value">${t.paymentMethod || '-'}</span></div>
         <div class="view-detail-row"><span class="view-detail-label">Sumber Dana</span><span class="view-detail-value">${t.fundSource || '-'}</span></div>
-        <div class="view-detail-row"><span class="view-detail-label">Keterangan</span><span class="view-detail-value">${t.description || '-'}</span></div>
+        ${t.reminder ? `
+        <div class="view-detail-row" style="background: rgba(59, 130, 246, 0.05); padding: 0.5rem; border-radius: 8px;">
+            <span class="view-detail-label" style="color: var(--accent-primary)"><i class='bx bxs-bell'></i> Pengingat</span>
+            <span class="view-detail-value" style="color: var(--accent-primary); font-weight: 600;">${formatDate(t.reminder)} ${new Date(t.reminder).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>` : ''}
+        <div class="view-detail-row" style="flex-direction:column; align-items:flex-start;">
+            <span class="view-detail-label">Keterangan</span>
+            <span class="view-detail-value" style="margin-top:0.25rem;">${t.description || '-'}</span>
+        </div>
         <div class="view-detail-row">
             <span class="view-detail-label">Bukti</span>
             <span class="view-detail-value">

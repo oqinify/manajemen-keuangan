@@ -8,21 +8,26 @@ function setup() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['ID', 'Tanggal', 'Tipe', 'Output', 'Nominal', 'Metode Pembayaran', 'Sumber Dana', 'Keterangan', 'Bukti Transaksi (URL)']);
-    sheet.getRange("A1:I1").setFontWeight("bold");
+    sheet.appendRow(['ID', 'Tanggal', 'Tipe', 'Output', 'Nominal', 'Metode Pembayaran', 'Sumber Dana', 'Keterangan', 'Bukti Transaksi (URL)', 'Reminder']);
+    sheet.getRange("A1:J1").setFontWeight("bold");
     sheet.setFrozenRows(1);
   } else {
-    var range = sheet.getRange("A1:I1");
-    range.setValues([['ID', 'Tanggal', 'Tipe', 'Output', 'Nominal', 'Metode Pembayaran', 'Sumber Dana', 'Keterangan', 'Bukti Transaksi (URL)']]);
+    var range = sheet.getRange("A1:J1");
+    range.setValues([['ID', 'Tanggal', 'Tipe', 'Output', 'Nominal', 'Metode Pembayaran', 'Sumber Dana', 'Keterangan', 'Bukti Transaksi (URL)', 'Reminder']]);
     range.setFontWeight("bold");
   }
   
   var masterSheet = ss.getSheetByName(MASTER_SHEET_NAME);
   if (!masterSheet) {
     masterSheet = ss.insertSheet(MASTER_SHEET_NAME);
-    masterSheet.appendRow(['Daftar Output', 'Metode Pembayaran']);
-    masterSheet.getRange("A1:B1").setFontWeight("bold");
+    masterSheet.appendRow(['Daftar Output', 'Metode Pembayaran', 'Sumber Dana']);
+    masterSheet.getRange("A1:C1").setFontWeight("bold");
     masterSheet.setFrozenRows(1);
+  } else {
+    // Pastikan header diperbarui jika sheet sudah ada
+    var range = masterSheet.getRange("A1:C1");
+    range.setValues([['Daftar Output', 'Metode Pembayaran', 'Sumber Dana']]);
+    range.setFontWeight("bold");
   }
 }
 
@@ -65,15 +70,17 @@ function doGet(e) {
         paymentMethod: row[5],
         fundSource: row[6],
         description: row[7],
-        receiptUrl: row[8]
+        receiptUrl: row[8],
+        reminder: row[9] || null
       });
     }
   }
   
-  // Baca master output dan metode
+  // Baca master output, metode, dan sumber dana
   var masterData = masterSheet.getDataRange().getValues();
   var masterOutputs = [];
   var masterMethods = [];
+  var masterSources = [];
   for (var j = 1; j < masterData.length; j++) {
     if (masterData[j][0] && masterData[j][0] !== '') {
       masterOutputs.push(masterData[j][0]);
@@ -81,12 +88,16 @@ function doGet(e) {
     if (masterData[j].length > 1 && masterData[j][1] && masterData[j][1] !== '') {
       masterMethods.push(masterData[j][1]);
     }
+    if (masterData[j].length > 2 && masterData[j][2] && masterData[j][2] !== '') {
+      masterSources.push(masterData[j][2]);
+    }
   }
   
   return ContentService.createTextOutput(JSON.stringify({
     transactions: result,
     masterOutputs: masterOutputs,
-    masterMethods: masterMethods
+    masterMethods: masterMethods,
+    masterSources: masterSources
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -114,24 +125,12 @@ function doPost(e) {
       fileUrl = uploadFileToDrive(body.fileBase64, body.fileMimeType, body.fileName);
     }
     
-    sheet.appendRow([t.id, t.date, t.type, t.output, t.amount, t.paymentMethod, t.fundSource, t.description, fileUrl]);
+    sheet.appendRow([t.id, t.date, t.type, t.output, t.amount, t.paymentMethod, t.fundSource, t.description, fileUrl, t.reminder || ""]);
     
-    // Tambahkan output ke sheet Master jika belum ada
-    if (t.output) {
-      var mData = masterSheet.getDataRange().getValues();
-      var exists = false;
-      for (var k = 1; k < mData.length; k++) {
-        // Cek case-insensitive
-        if (mData[k][0].toString().toLowerCase() === t.output.toString().toLowerCase().trim()) {
-          exists = true;
-          break;
-        }
-      }
-      if (!exists) {
-        // Simpan output baru dengan format rapi (kapital huruf pertama opsional, kita simpan sesuai input user)
-        masterSheet.appendRow([t.output.trim()]);
-      }
-    }
+    // Tambahkan ke sheet Master jika belum ada
+    if (t.output) updateMasterList(masterSheet, t.output, 0);
+    if (t.paymentMethod) updateMasterList(masterSheet, t.paymentMethod, 1);
+    if (t.fundSource) updateMasterList(masterSheet, t.fundSource, 2);
     
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
@@ -163,21 +162,11 @@ function doPost(e) {
         fileUrl = uploadFileToDrive(body.fileBase64, body.fileMimeType, body.fileName);
       }
       
-      sheet.getRange(rowIndex, 2, 1, 8).setValues([[t.date, t.type, t.output, t.amount, t.paymentMethod, t.fundSource, t.description, fileUrl]]);
+      sheet.getRange(rowIndex, 2, 1, 9).setValues([[t.date, t.type, t.output, t.amount, t.paymentMethod, t.fundSource, t.description, fileUrl, t.reminder || ""]]);
       
-      if (t.output) {
-        var mData = masterSheet.getDataRange().getValues();
-        var exists = false;
-        for (var k = 1; k < mData.length; k++) {
-          if (mData[k][0].toString().toLowerCase() === t.output.toString().toLowerCase().trim()) {
-            exists = true;
-            break;
-          }
-        }
-        if (!exists) {
-          masterSheet.appendRow([t.output.trim()]);
-        }
-      }
+      if (t.output) updateMasterList(masterSheet, t.output, 0);
+      if (t.paymentMethod) updateMasterList(masterSheet, t.paymentMethod, 1);
+      if (t.fundSource) updateMasterList(masterSheet, t.fundSource, 2);
     }
     
     return ContentService.createTextOutput(JSON.stringify({
@@ -284,5 +273,33 @@ function testDriveAccess() {
   } catch (e) {
     console.error("Gagal Tes Drive: " + e.toString());
     return "Gagal: " + e.toString();
+  }
+}
+// Helper untuk update daftar master (Output, Metode, Sumber Dana)
+function updateMasterList(sheet, value, columnIndex) {
+  var data = sheet.getDataRange().getValues();
+  var valueTrimmed = value.toString().trim();
+  var valueLower = valueTrimmed.toLowerCase();
+  
+  var exists = false;
+  var lastRow = data.length;
+  var targetRow = -1;
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][columnIndex] && data[i][columnIndex].toString().toLowerCase() === valueLower) {
+      exists = true;
+      break;
+    }
+    // Cari baris kosong pertama di kolom ini
+    if (targetRow === -1 && (!data[i][columnIndex] || data[i][columnIndex] === '')) {
+      targetRow = i + 1;
+    }
+  }
+
+  if (!exists) {
+    if (targetRow === -1) {
+      targetRow = lastRow + 1;
+    }
+    sheet.getRange(targetRow, columnIndex + 1).setValue(valueTrimmed);
   }
 }
