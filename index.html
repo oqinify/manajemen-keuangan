@@ -9,11 +9,11 @@
     <meta name="theme-color" content="#3b82f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2488/2488744.png">
-    <link rel="stylesheet" href="styles.css?v=37">
+    <link rel="stylesheet" href="styles.css?v=41">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -262,7 +262,8 @@
 
                 <div class="form-group">
                     <label for="fund-source">Sumber Dana</label>
-                    <input type="text" id="fund-source" list="master-sources" placeholder="Pilih atau ketik sumber dana..." required>
+                    <input type="text" id="fund-source" list="master-sources"
+                        placeholder="Pilih atau ketik sumber dana..." required>
                     <datalist id="master-sources"></datalist>
                 </div>
 
@@ -284,7 +285,7 @@
 
                 <div class="form-group">
                     <label for="amount">Total Nominal (Rp)</label>
-                    <input type="number" id="amount" placeholder="0" min="1" required>
+                    <input type="text" id="amount" inputmode="numeric" placeholder="0" required>
                 </div>
 
                 <div class="form-group">
@@ -303,26 +304,32 @@
                 </div>
 
                 <!-- Reminder Option -->
-                <div class="form-group" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--card-border);">
+                <div class="form-group"
+                    style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--card-border);">
                     <div style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
                         <input type="checkbox" id="enable-reminder" style="width: 20px; height: 20px; cursor: pointer;">
-                        <label for="enable-reminder" style="margin-bottom: 0; cursor: pointer; font-weight: 500;">Pasang Pengingat?</label>
+                        <label for="enable-reminder" style="margin-bottom: 0; cursor: pointer; font-weight: 500;">Pasang
+                            Pengingat?</label>
                     </div>
                 </div>
-                
-                <div id="reminder-settings" style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
+
+                <div id="reminder-settings"
+                    style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
                     <div class="form-group">
                         <label for="reminder-time">Kapan harus diingatkan?</label>
                         <input type="datetime-local" id="reminder-time" style="width: 100%; margin-bottom: 0.75rem;">
-                        
-                        <div class="reminder-presets" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+
+                        <div class="reminder-presets"
+                            style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <button type="button" class="btn-preset" data-add="1h">+1 Jam</button>
                             <button type="button" class="btn-preset" data-add="3h">+3 Jam</button>
                             <button type="button" class="btn-preset" data-add="tomorrow">Besok Pagi</button>
                             <button type="button" class="btn-preset" data-add="1w">Minggu Depan</button>
                         </div>
-                        
-                        <p id="reminder-info" style="font-size: 0.75rem; color: var(--accent-primary); margin-top: 0.5rem; display: none;"></p>
+
+                        <p id="reminder-info"
+                            style="font-size: 0.75rem; color: var(--accent-primary); margin-top: 0.5rem; display: none;">
+                        </p>
                     </div>
                 </div>
 
@@ -357,7 +364,7 @@
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
-    <script src="app.js?v=37"></script>
+    <script src="app.js?v=41"></script>
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {

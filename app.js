@@ -104,9 +104,9 @@ const calculateTotal = () => {
         amountEl.removeEventListener('input', syncSingleItemAmount);
         amountEl.addEventListener('input', syncSingleItemAmount);
 
-        const price = parseFloat(rows[0].querySelector('.desc-item-amount').value) || 0;
+        const price = unformatNumber(rows[0].querySelector('.desc-item-amount').value);
         const qty = parseFloat(rows[0].querySelector('.desc-item-qty').value) || 0;
-        if (price > 0) amountEl.value = price * qty;
+        if (price > 0) amountEl.value = formatNumber(price * qty);
     } else {
         amountEl.disabled = true;
         amountEl.readOnly = true;
@@ -115,10 +115,10 @@ const calculateTotal = () => {
         let total = 0;
         rows.forEach(row => {
             const qty = parseFloat(row.querySelector('.desc-item-qty').value) || 0;
-            const price = parseFloat(row.querySelector('.desc-item-amount').value) || 0;
+            const price = unformatNumber(row.querySelector('.desc-item-amount').value);
             total += (qty * price);
         });
-        amountEl.value = total > 0 ? total : '';
+        amountEl.value = total > 0 ? formatNumber(total) : '';
     }
 };
 
@@ -139,13 +139,21 @@ const createItemRow = (name = '', qty = 1, amount = '') => {
         </div>
         <div class="desc-item-inputs-row">
             <input type="number" class="desc-item-qty" placeholder="Qty" value="${qty}" min="1" step="any" required>
-            <input type="number" class="desc-item-amount" placeholder="Harga Satuan..." value="${amount}" required>
+            <input type="text" inputmode="numeric" class="desc-item-amount" placeholder="Harga Satuan..." value="${formatNumber(amount)}" required>
             <button type="button" class="btn-remove-item" title="Hapus Item">
                 <i class='bx bx-x'></i>
             </button>
         </div>
         <div class="desc-item-subtotal"></div>
     `;
+
+    // Format on input
+    const amtInp = row.querySelector('.desc-item-amount');
+    amtInp.addEventListener('input', (e) => {
+        const val = unformatNumber(e.target.value);
+        e.target.value = formatNumber(val);
+        calculateTotal();
+    });
 
     // Add listeners for total calculation
     row.querySelector('.desc-item-qty').addEventListener('input', calculateTotal);
@@ -192,7 +200,7 @@ const getJoinedDescription = () => {
         const qty = row.querySelector('.desc-item-qty').value.trim() || 1;
         const amt = row.querySelector('.desc-item-amount').value.trim();
         if (name === '') return '';
-        return amt !== '' ? `${name} [${qty} x ${amt}]` : name;
+        return amt !== '' ? `${name} [${qty} x ${unformatNumber(amt)}]` : name;
     }).filter(v => v !== '');
     return items.join(' | ');
 };
@@ -242,6 +250,19 @@ const formatDate = (dateString) => {
     } catch (e) {
         return dateString;
     }
+};
+
+// Helper to format number with dots
+const formatNumber = (val) => {
+    if (!val && val !== 0) return '';
+    return val.toString().replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+// Helper to remove dots from string
+const unformatNumber = (val) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    return parseInt(val.toString().replace(/\D/g, "")) || 0;
 };
 
 // Helper to compress image
@@ -331,6 +352,14 @@ const requestNotificationPermission = async () => {
 const init = async () => {
     setTodayDate();
     resetDescriptionItems();
+
+    // Global listener for manual amount input
+    if (amountEl) {
+        amountEl.addEventListener('input', (e) => {
+            const val = unformatNumber(e.target.value);
+            e.target.value = formatNumber(val);
+        });
+    }
 
     try {
         await fetchTransactions();
@@ -746,9 +775,12 @@ const getFilteredTransactions = () => {
         if (txSortKey === 'amount') { va = +va; vb = +vb; }
         if (typeof va === 'string') va = va.toLowerCase();
         if (typeof vb === 'string') vb = vb.toLowerCase();
+        
         if (va < vb) return txSortDir === 'asc' ? -1 : 1;
         if (va > vb) return txSortDir === 'asc' ? 1 : -1;
-        return 0;
+        
+        // Secondary sort: Newest ID (timestamp) first for same primary values
+        return b.id.toString().localeCompare(a.id.toString(), undefined, {numeric: true, sensitivity: 'base'}) * -1;
     });
 
     return result;
@@ -906,16 +938,16 @@ window.viewTransaction = (id) => {
             <span class="view-detail-label" style="margin-bottom: 0.5rem;">Daftar Item / Keterangan</span>
             <div style="width: 100%; display: flex; flex-direction: column; gap: 0.25rem;">
                 ${(t.description || '-').split(' | ').map(item => {
-            const match = item.match(/(.*) \[(.*) x (.*)\]/);
-            if (match) {
-                return `
+        const match = item.match(/(.*) \[(.*) x (.*)\]/);
+        if (match) {
+            return `
                         <div style="display: flex; justify-content: space-between; font-size: 0.85rem; background: var(--item-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">
                             <span style="font-weight: 600; color: var(--text-main);">${match[1]}</span>
                             <span style="color: var(--text-muted);">${match[2]} x ${formatCurrency(match[3])}</span>
                         </div>`;
-            }
-            return `<div style="font-size: 0.85rem; background: var(--item-bg); padding: 0.4rem 0.6rem; border-radius: 6px; color: var(--text-main);">${item}</div>`;
-        }).join('')}
+        }
+        return `<div style="font-size: 0.85rem; background: var(--item-bg); padding: 0.4rem 0.6rem; border-radius: 6px; color: var(--text-main);">${item}</div>`;
+    }).join('')}
             </div>
         </div>
         <div class="view-detail-row">
@@ -1010,7 +1042,7 @@ const addTransaction = async (e) => {
     const type = document.querySelector('input[name="type"]:checked').value;
     const date = dateEl.value;
     const output = outputEl.value.trim();
-    const amount = +amountEl.value;
+    const amount = unformatNumber(amountEl.value);
     const paymentMethod = paymentMethodEl.value.trim();
     const fundSource = fundSourceEl.value.trim();
     const description = getJoinedDescription();
@@ -1027,7 +1059,6 @@ const addTransaction = async (e) => {
         output,
         amount,
         paymentMethod,
-        fundSource,
         fundSource,
         description,
         reminder: document.getElementById('enable-reminder').checked ? document.getElementById('reminder-time').value : null
@@ -1162,7 +1193,7 @@ window.editTransaction = (id) => {
     // Set other values
     document.querySelector(`input[name="type"][value="${transaction.type}"]`).checked = true;
     outputEl.value = transaction.output || '';
-    amountEl.value = transaction.amount || '';
+    amountEl.value = transaction.amount ? formatNumber(transaction.amount) : '';
     paymentMethodEl.value = transaction.paymentMethod || '';
     fundSourceEl.value = transaction.fundSource || '';
 
@@ -1300,23 +1331,23 @@ const updateReminderInfo = () => {
         reminderInfo.style.display = 'none';
         return;
     }
-    
+
     const rTime = new Date(reminderTimeInput.value);
     const now = new Date();
     const diffMs = rTime - now;
-    
+
     if (diffMs <= 0) {
         reminderInfo.innerText = "Waktu sudah terlewat!";
         reminderInfo.style.color = "var(--expense-color)";
     } else {
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffHours / 24);
-        
+
         let text = "Diingatkan pada: " + formatDate(rTime) + " jam " + rTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         if (diffDays > 0) text += ` (Dalam ${diffDays} hari)`;
         else if (diffHours > 0) text += ` (Dalam ${diffHours} jam)`;
         else text += ` (Sebentar lagi)`;
-        
+
         reminderInfo.innerText = text;
         reminderInfo.style.color = "var(--accent-primary)";
     }
@@ -1329,7 +1360,7 @@ document.querySelectorAll('.btn-preset').forEach(btn => {
     btn.addEventListener('click', () => {
         const type = btn.dataset.add;
         let date = new Date();
-        
+
         if (type === '1h') date.setHours(date.getHours() + 1);
         else if (type === '3h') date.setHours(date.getHours() + 3);
         else if (type === 'tomorrow') {
@@ -1337,7 +1368,7 @@ document.querySelectorAll('.btn-preset').forEach(btn => {
             date.setHours(9, 0, 0, 0); // Tomorrow at 9 AM
         }
         else if (type === '1w') date.setDate(date.getDate() + 7);
-        
+
         const tzOffset = date.getTimezoneOffset() * 60000;
         const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
         reminderTimeInput.value = localISODate;
@@ -1408,12 +1439,12 @@ reminderListModal?.addEventListener('click', (e) => {
 
 const renderReminderList = () => {
     if (!reminderListContainer) return;
-    
+
     // Ambil transaksi yang memiliki reminder
     const reminders = transactions
         .filter(t => t.reminder && t.reminder !== "")
         .sort((a, b) => new Date(a.reminder) - new Date(b.reminder));
-    
+
     if (reminders.length === 0) {
         reminderListContainer.innerHTML = `
             <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
@@ -1423,15 +1454,15 @@ const renderReminderList = () => {
         `;
         return;
     }
-    
+
     const now = new Date();
-    
+
     reminderListContainer.innerHTML = reminders.map(t => {
         const rTime = new Date(t.reminder);
         const isPassed = rTime < now;
         const statusText = isPassed ? "Sudah Terlewat" : "Akan Datang";
         const statusColor = isPassed ? "var(--expense-color)" : "var(--accent-primary)";
-        
+
         return `
             <div class="card" style="margin-bottom: 0.75rem; padding: 1rem; border-left: 4px solid ${statusColor}; background: var(--item-bg);">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">

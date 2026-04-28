@@ -393,9 +393,9 @@ body {
     background: var(--modal-bg);
     backdrop-filter: blur(8px);
     z-index: 2000 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    overflow-y: auto;
+    /* padding: 2rem 1rem; */
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -409,11 +409,9 @@ body {
 .modal-content {
     width: 100%;
     max-width: 500px;
+    margin: 0 auto;
     transform: translateY(-20px) scale(0.95);
     transition: all 0.3s ease;
-    margin: 1rem;
-    max-height: 90vh;
-    overflow-y: auto;
 }
 
 .modal-overlay.active .modal-content {
@@ -1227,9 +1225,9 @@ textarea:focus {
     background: var(--modal-bg);
     backdrop-filter: blur(8px);
     z-index: 2000 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    overflow-y: auto;
+    padding: 2rem 1rem;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -1248,7 +1246,7 @@ textarea:focus {
     padding: 1.75rem;
     width: 100%;
     max-width: 420px;
-    margin: 1rem;
+    margin: 0 auto;
     transform: scale(0.95);
     transition: transform 0.3s ease;
 }
@@ -1371,7 +1369,7 @@ textarea:focus {
 
     .modal-content {
         margin: 1rem;
-        padding: 1.25rem;
+        /* padding: 1.25rem; */
         width: calc(100% - 2rem);
     }
 
@@ -1703,27 +1701,60 @@ body:has(.modal-overlay.active, .view-modal-overlay.active, #reminder-list-modal
     animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
 }
 
-.toast.success { border-left: 4px solid var(--income-color); }
-.toast.error { border-left: 4px solid var(--expense-color); }
-.toast.info { border-left: 4px solid var(--accent-primary); }
+.toast.success {
+    border-left: 4px solid var(--income-color);
+}
 
-.toast i { font-size: 1.4rem; }
-.toast.success i { color: var(--income-color); }
-.toast.error i { color: var(--expense-color); }
-.toast.info i { color: var(--accent-primary); }
+.toast.error {
+    border-left: 4px solid var(--expense-color);
+}
+
+.toast.info {
+    border-left: 4px solid var(--accent-primary);
+}
+
+.toast i {
+    font-size: 1.4rem;
+}
+
+.toast.success i {
+    color: var(--income-color);
+}
+
+.toast.error i {
+    color: var(--expense-color);
+}
+
+.toast.info i {
+    color: var(--accent-primary);
+}
 
 .toast.hide {
     animation: toastSlideOut 0.3s ease forwards;
 }
 
 @keyframes toastSlideIn {
-    from { transform: translateX(120%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 @keyframes toastSlideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(120%); opacity: 0; }
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(120%);
+        opacity: 0;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1734,7 +1765,7 @@ body:has(.modal-overlay.active, .view-modal-overlay.active, #reminder-list-modal
         right: 20px;
         align-items: center;
     }
-    
+
     .toast {
         width: 100%;
         max-width: none;
