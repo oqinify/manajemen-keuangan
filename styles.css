@@ -392,7 +392,7 @@ body {
     height: 100%;
     background: var(--modal-bg);
     backdrop-filter: blur(8px);
-    z-index: 1000;
+    z-index: 2000 !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1226,7 +1226,7 @@ textarea:focus {
     inset: 0;
     background: var(--modal-bg);
     backdrop-filter: blur(8px);
-    z-index: 1100;
+    z-index: 2000 !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1562,6 +1562,13 @@ textarea:focus {
     box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
     z-index: 900;
     transition: all 0.3s ease;
+}
+
+/* Hide FAB when any modal is active */
+body:has(.modal-overlay.active, .view-modal-overlay.active, #reminder-list-modal.active) .fab-btn {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .fab-btn:hover {
