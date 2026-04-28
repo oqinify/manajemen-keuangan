@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finansialku-v35';
+const CACHE_NAME = 'finansialku-v36';
 const ASSETS = [
   './',
   './index.html',

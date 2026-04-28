@@ -1226,7 +1226,7 @@ textarea:focus {
     inset: 0;
     background: var(--modal-bg);
     backdrop-filter: blur(8px);
-    z-index: 200;
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: center;
