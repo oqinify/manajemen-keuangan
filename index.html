@@ -13,7 +13,7 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2488/2488744.png">
-    <link rel="stylesheet" href="styles.css?v=41">
+    <link rel="stylesheet" href="styles.css?v=44">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -47,8 +47,11 @@
                 <h1>FinansialKu</h1>
             </div>
             <div style="display: flex; gap: 1rem; align-items: center;">
-                <button id="notification-btn" class="btn-theme" title="Aktifkan Notifikasi">
+                <button id="notification-btn" class="btn-theme" title="Daftar Pengingat">
                     <i class='bx bx-bell'></i>
+                </button>
+                <button id="settings-btn" class="btn-theme" title="Pengaturan">
+                    <i class='bx bx-cog'></i>
                 </button>
                 <button id="theme-toggle" class="btn-theme" title="Ganti Tema">
                     <i class='bx bx-moon'></i>
@@ -220,6 +223,86 @@
                 <div class="tx-pages" id="tx-pages"></div>
             </div>
         </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" style="display: none;">
+            <div class="settings-header">
+                <button id="back-from-settings" class="btn-clear">
+                    <i class='bx bx-left-arrow-alt'></i> Kembali
+                </button>
+                <h2><i class='bx bx-cog'></i> Pengaturan</h2>
+            </div>
+
+            <div class="settings-grid">
+                <!-- Appearance -->
+                <div class="card settings-card">
+                    <h3><i class='bx bx-palette'></i> Tampilan</h3>
+                    <p>Sesuaikan tampilan aplikasi Anda.</p>
+                    <div class="settings-action">
+                        <span>Mode Gelap / Terang</span>
+                        <button id="settings-theme-toggle" class="btn-primary" style="padding: 0.5rem;">
+                            <i class='bx bx-moon'></i> Ganti
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card settings-card">
+                    <h3><i class='bx bx-data'></i> Data Master</h3>
+                    <p>Data yang tersinkronisasi dengan Google Sheets.</p>
+                    <div class="master-data-lists">
+                        <div class="master-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span class="label">Kategori (Output)</span>
+                                <button class="btn-clear add-master-btn" onclick="openMasterModal('output')" style="color: var(--accent-primary); font-size: 1.2rem;">
+                                    <i class='bx bx-plus-circle'></i>
+                                </button>
+                            </div>
+                            <div id="master-output-list" class="badge-container"></div>
+                        </div>
+                        <div class="master-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span class="label">Metode Pembayaran</span>
+                                <button class="btn-clear add-master-btn" onclick="openMasterModal('method')" style="color: var(--accent-primary); font-size: 1.2rem;">
+                                    <i class='bx bx-plus-circle'></i>
+                                </button>
+                            </div>
+                            <div id="master-method-list" class="badge-container"></div>
+                        </div>
+                        <div class="master-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span class="label">Sumber Dana</span>
+                                <button class="btn-clear add-master-btn" onclick="openMasterModal('source')" style="color: var(--accent-primary); font-size: 1.2rem;">
+                                    <i class='bx bx-plus-circle'></i>
+                                </button>
+                            </div>
+                            <div id="master-source-list" class="badge-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Info -->
+                <div class="card settings-card">
+                    <h3><i class='bx bx-info-circle'></i> Info Aplikasi</h3>
+                    <div class="app-info-list">
+                        <div class="info-row">
+                            <span>Versi</span>
+                            <span>42.0.0</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Status</span>
+                            <span class="status-badge online">Online</span>
+                        </div>
+                        <div class="info-row">
+                            <span>PWA</span>
+                            <span>Aktif</span>
+                        </div>
+                    </div>
+                    <button id="refresh-app-btn" class="btn-submit" style="margin-top: 1rem; background: var(--card-border); color: var(--text-main);">
+                        <i class='bx bx-refresh'></i> Cek Pembaruan
+                    </button>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Modal Form -->
@@ -361,10 +444,34 @@
         </div>
     </div>
 
+    <!-- Master Data Modal -->
+    <div class="modal-overlay" id="master-modal">
+        <div class="card modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="master-modal-title">Tambah Data</h2>
+                <button class="btn-close" id="close-master-modal">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="master-form">
+                    <input type="hidden" id="master-type">
+                    <div class="form-group">
+                        <label for="master-value">Nama/Nilai Baru</label>
+                        <input type="text" id="master-value" placeholder="Masukkan nama..." required>
+                    </div>
+                    <button type="submit" class="btn-submit" id="master-submit-btn" style="width: 100%; margin-top: 1rem;">
+                        <i class='bx bx-plus-circle'></i> Tambahkan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
-    <script src="app.js?v=41"></script>
+    <script src="app.js?v=44"></script>
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {

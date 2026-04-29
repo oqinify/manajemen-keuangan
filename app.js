@@ -1,7 +1,7 @@
 // =========================================================================
 // PENTING: Ganti URL di bawah dengan URL Web App Google Apps Script Anda!
 // =========================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0XluQdEiC5mJtxfoAutyF7xpvux-3hSX8AWvx3SOO4UlxrnQ8nFg4-j_i7B3J66Uww/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRdI6b9gOMA36Oq6hRWqkwkmSMlnmbtr9lOLFJtp_FDk0mYHegP0UIMbNG6Uvx3CDh_Q/exec';
 
 // Initial state and DOM elements
 let transactions = [];
@@ -27,7 +27,7 @@ const fundSourceEl = document.getElementById('fund-source');
 const descriptionEl = document.getElementById('description');
 const receiptEl = document.getElementById('receipt');
 const emptyStateEl = document.getElementById('empty-state');
-const submitBtn = document.querySelector('.btn-submit');
+const submitBtn = document.getElementById('btn-submit-form');
 const modalEl = document.getElementById('transaction-modal');
 const openModalBtn = document.getElementById('open-modal-btn');
 const closeModalBtn = document.getElementById('close-modal-btn');
@@ -36,6 +36,21 @@ const removeReceiptBtn = document.getElementById('remove-receipt-btn');
 const previewContainer = document.getElementById('receipt-preview');
 const itemsContainer = document.getElementById('description-items-container');
 const addItemBtn = document.getElementById('add-desc-item-btn');
+
+// Settings Elements
+const settingsBtn = document.getElementById('settings-btn');
+const settingsSection = document.getElementById('settings-section');
+const summarySection = document.querySelector('.summary-section');
+const dashboardSection = document.querySelector('.dashboard-section');
+const txTableSection = document.querySelector('.tx-table-section');
+const backFromSettingsBtn = document.getElementById('back-from-settings');
+const settingsThemeToggle = document.getElementById('settings-theme-toggle');
+const refreshAppBtn = document.getElementById('refresh-app-btn');
+const fabBtn = document.querySelector('.fab-btn');
+
+const masterOutputList = document.getElementById('master-output-list');
+const masterMethodList = document.getElementById('master-method-list');
+const masterSourceList = document.getElementById('master-source-list');
 
 // Modal functions
 const openModal = () => {
@@ -775,12 +790,13 @@ const getFilteredTransactions = () => {
         if (txSortKey === 'amount') { va = +va; vb = +vb; }
         if (typeof va === 'string') va = va.toLowerCase();
         if (typeof vb === 'string') vb = vb.toLowerCase();
-        
+
         if (va < vb) return txSortDir === 'asc' ? -1 : 1;
         if (va > vb) return txSortDir === 'asc' ? 1 : -1;
-        
+
         // Secondary sort: Newest ID (timestamp) first for same primary values
-        return b.id.toString().localeCompare(a.id.toString(), undefined, {numeric: true, sensitivity: 'base'}) * -1;
+        // return b.id.toString().localeCompare(a.id.toString(), undefined, { numeric: true, sensitivity: 'base' }) * -1;
+        return Number(b.id) - Number(a.id);
     });
 
     return result;
@@ -1516,6 +1532,145 @@ removeReceiptBtn.addEventListener('click', function () {
     previewContainer.style.display = 'none';
     isReceiptDeleted = true;
 });
+
+// Settings Navigation
+const showSettings = () => {
+    if (summarySection) summarySection.style.display = 'none';
+    if (dashboardSection) dashboardSection.style.display = 'none';
+    if (txTableSection) txTableSection.style.display = 'none';
+    if (fabBtn) fabBtn.style.display = 'none';
+    if (settingsSection) settingsSection.style.display = 'block';
+    populateSettingsData();
+};
+
+const showDashboard = () => {
+    if (summarySection) summarySection.style.display = 'grid';
+    if (dashboardSection) dashboardSection.style.display = 'grid';
+    if (txTableSection) txTableSection.style.display = 'block';
+    if (fabBtn) fabBtn.style.display = 'flex';
+    if (settingsSection) settingsSection.style.display = 'none';
+};
+
+const populateSettingsData = () => {
+    if (masterOutputList) {
+        masterOutputList.innerHTML = masterOutputs.map(o => `<span class="master-badge">${o}</span>`).join('');
+    }
+    if (masterMethodList) {
+        masterMethodList.innerHTML = masterMethods.map(m => `<span class="master-badge">${m}</span>`).join('');
+    }
+    if (masterSourceList) {
+        masterSourceList.innerHTML = masterSources.map(s => `<span class="master-badge">${s}</span>`).join('');
+    }
+};
+
+// Event Listeners for Settings
+if (settingsBtn) settingsBtn.addEventListener('click', showSettings);
+if (backFromSettingsBtn) backFromSettingsBtn.addEventListener('click', showDashboard);
+if (settingsThemeToggle) {
+    settingsThemeToggle.addEventListener('click', () => {
+        if (themeToggleBtn) themeToggleBtn.click();
+    });
+}
+if (refreshAppBtn) {
+    refreshAppBtn.addEventListener('click', () => {
+        const btn = refreshAppBtn;
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Mengecek...";
+        btn.disabled = true;
+
+        setTimeout(() => {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(registration => {
+                    if (registration) {
+                        registration.update().then(() => {
+                            btn.innerHTML = "<i class='bx bx-check'></i> Versi Terbaru";
+                            setTimeout(() => {
+                                btn.innerHTML = originalContent;
+                                btn.disabled = false;
+                                location.reload();
+                            }, 1000);
+                        });
+                    } else {
+                        location.reload();
+                    }
+                });
+            } else {
+                location.reload();
+            }
+        }, 1500);
+    });
+}
+
+// Master Data Management
+const masterModal = document.getElementById('master-modal');
+const masterForm = document.getElementById('master-form');
+const masterTypeInput = document.getElementById('master-type');
+const masterValueInput = document.getElementById('master-value');
+const masterSubmitBtn = document.getElementById('master-submit-btn');
+const closeMasterModalBtn = document.getElementById('close-master-modal');
+
+window.openMasterModal = (type) => {
+    masterTypeInput.value = type;
+    const titleMap = {
+        'output': 'Tambah Kategori',
+        'method': 'Tambah Metode Pembayaran',
+        'source': 'Tambah Sumber Dana'
+    };
+    document.getElementById('master-modal-title').innerText = titleMap[type] || 'Tambah Data';
+    masterModal.classList.add('active');
+};
+
+const closeMasterModal = () => {
+    masterModal.classList.remove('active');
+    masterForm.reset();
+};
+
+if (closeMasterModalBtn) closeMasterModalBtn.addEventListener('click', closeMasterModal);
+
+if (masterForm) {
+    masterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = masterTypeInput.value;
+        const value = masterValueInput.value.trim();
+
+        if (!value) return;
+
+        masterSubmitBtn.disabled = true;
+        masterSubmitBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Menambahkan...";
+
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'addMaster',
+                    type: type,
+                    value: value
+                }),
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                showToast('Data master berhasil ditambahkan!', 'success');
+                // Refresh data
+                await init();
+                populateSettingsData();
+                closeMasterModal();
+            } else {
+                throw new Error(result.message || 'Gagal menambahkan data master');
+            }
+        } catch (error) {
+            console.error('Error adding master data:', error);
+            alert('Error: ' + error.message + '\n\nPastikan Anda telah memperbarui kode Google Apps Script Anda.');
+        } finally {
+            masterSubmitBtn.disabled = false;
+            masterSubmitBtn.innerHTML = "<i class='bx bx-plus-circle'></i> Tambahkan";
+        }
+    });
+}
 
 // Run init
 initTheme();
